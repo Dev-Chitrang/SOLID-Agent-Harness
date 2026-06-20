@@ -1,19 +1,32 @@
 {
   "name": "code-audit-harness",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Multi-agent code safety and architectural auditing tool.",
-  "main": "cli.js",
+  "main": "src/cli.js",
   "type": "module",
   "bin": {
-    "code-audit": "./cli.js"
+    "code-audit": "./bin/code-agent.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@langchain/core": "^0.3.0",
+    "@langchain/anthropic": "^0.3.0",
+    "@langchain/core": "^0.3.80",
+    "@langchain/google-genai": "^0.1.0",
     "@langchain/langgraph": "^0.2.0",
     "@langchain/openai": "^0.3.0",
+    "blessed": "^0.1.81",
+    "chalk": "5.6.2",
+    "cli-table3": "0.6.5",
     "commander": "^12.0.0",
     "conf": "^12.0.0",
     "dotenv": "^16.4.5",
-    "ignore": "^6.0.2"
+    "ignore": "^6.0.2",
+    "inquirer": "^14.0.2",
+    "ora": "9.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
