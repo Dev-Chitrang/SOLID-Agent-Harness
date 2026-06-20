@@ -19,7 +19,7 @@ export function readRepositoryFiles(targetPath) {
 
     function traverse(currentDir) {
         const items = fs.readdirSync(currentDir);
-        for (const item in items) {
+        for (const item of items) {
             const fullPath = path.join(currentDir, item);
             const relativePath = path.relative(absoluteRoot, fullPath);
 

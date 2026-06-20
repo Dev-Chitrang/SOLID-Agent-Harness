@@ -1,0 +1,115 @@
+import { describe, it, expect, vi } from 'vitest';
+import { AgentHarness } from '../../src/core/harness.js';
+
+// Mock all six graph pipeline modules so tests never execute real LLM calls
+vi.mock('../../src/audit/graph.js', () => ({
+    auditGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'audit result' }) }
+}));
+vi.mock('../../src/bugs/graph.js', () => ({
+    bugGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'bugs result' }) }
+}));
+vi.mock('../../src/docs/graph.js', () => ({
+    docsGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'docs result' }) }
+}));
+vi.mock('../../src/readme/graph.js', () => ({
+    readmeGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'readme result' }) }
+}));
+vi.mock('../../src/review/graph.js', () => ({
+    reviewGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'review result' }) }
+}));
+vi.mock('../../src/explain/graph.js', () => ({
+    explainGraphPipeline: { invoke: vi.fn().mockResolvedValue({ analysisResult: 'explain result' }) }
+}));
+
+const mockProvider = { invoke: vi.fn() };
+const mockFiles = [{ relativePath: 'index.js', content: 'const x = 1;' }];
+
+describe('AgentHarness', () => {
+    describe('constructor', () => {
+        it('stores provider and model on the instance', () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            expect(harness.provider).toBe(mockProvider);
+            expect(harness.model).toBe('gpt-4o');
+        });
+
+        it('sets recursionLimit to 4', () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            expect(harness.recursionLimit).toBe(4);
+        });
+    });
+
+    describe('run() — graph selection', () => {
+        it('routes "audit" to the audit graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('audit', mockFiles);
+            expect(result).toBe('audit result');
+        });
+
+        it('routes "bugs" to the bug graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('bugs', mockFiles);
+            expect(result).toBe('bugs result');
+        });
+
+        it('routes "docs" to the docs graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('docs', mockFiles);
+            expect(result).toBe('docs result');
+        });
+
+        it('routes "readme" to the readme graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('readme', mockFiles);
+            expect(result).toBe('readme result');
+        });
+
+        it('routes "review" to the review graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('review', mockFiles);
+            expect(result).toBe('review result');
+        });
+
+        it('routes "explain" to the explain graph and returns its result', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            const result = await harness.run('explain', mockFiles);
+            expect(result).toBe('explain result');
+        });
+
+        it('throws for an unknown command type', async () => {
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            await expect(harness.run('unknown', mockFiles)).rejects.toThrow(
+                'Unknown circuit selection matching: unknown'
+            );
+        });
+    });
+
+    describe('run() — runtime config passed to graph', () => {
+        it('passes providerInstance and model in configurable context', async () => {
+            const { auditGraphPipeline } = await import('../../src/audit/graph.js');
+            const harness = new AgentHarness(mockProvider, 'claude-3-opus');
+            await harness.run('audit', mockFiles);
+
+            const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
+            expect(callArgs[1].configurable.providerInstance).toBe(mockProvider);
+            expect(callArgs[1].configurable.model).toBe('claude-3-opus');
+        });
+
+        it('passes repositoryFiles as inputState', async () => {
+            const { auditGraphPipeline } = await import('../../src/audit/graph.js');
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            await harness.run('audit', mockFiles);
+
+            const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
+            expect(callArgs[0].repositoryFiles).toBe(mockFiles);
+        });
+
+        it('sets recursionLimit in runtime config', async () => {
+            const { auditGraphPipeline } = await import('../../src/audit/graph.js');
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            await harness.run('audit', mockFiles);
+
+            const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
+            expect(callArgs[1].recursionLimit).toBe(4);
+        });
+    });
+});
