@@ -1,401 +1,353 @@
-# Code Audit Harness
+# code-audit-harness
 
-> A parallel multi-agent CLI platform for deep code analysis — auditing SOLID design principles, hunting logical bugs, generating architecture documentation, and producing professional README files, all in a single command.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [How It Works](#how-it-works)
-- [Architecture Diagram](#architecture-diagram)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Output](#output)
-- [Agent Reference](#agent-reference)
-- [LangSmith Tracing (Optional)](#langsmith-tracing-optional)
-- [Contributing](#contributing)
-- [License](#license)
+> Multi-agent, multi-provider CLI tool for automated code safety auditing, architectural analysis, and intelligent documentation generation.
 
 ---
 
 ## Overview
 
-**Code Audit Harness** is an enterprise-grade, multi-agent code analysis tool that spins up a LangGraph-orchestrated pipeline of specialized AI agents against any codebase. Each agent runs a focused task in parallel — SOLID design review, bug detection, architecture documentation, and README generation — then a report writer aggregates everything into structured markdown output files.
+`code-audit-harness` is a Node.js CLI tool that brings LLM-powered code intelligence directly into your terminal. It routes your codebase through purpose-built LangGraph agent pipelines — each one specialised for a different analytical task — and delivers structured Markdown reports or formatted terminal output without leaving your shell.
 
-The tool is powered by the **NVIDIA NIM API** (accessed through a LangChain OpenAI-compatible wrapper), meaning you get high-quality LLM reasoning tailored for code analysis tasks without needing an OpenAI subscription. Optionally, full execution tracing can be streamed to **LangSmith** for observability and debugging.
+It supports four major LLM providers out of the box (OpenAI, Anthropic, Google Gemini, NVIDIA NIM), lets you select any model per-run via an interactive TUI dashboard, and stores credentials once in a global config so repeat runs stay friction-free.
 
-Supported languages: **JavaScript**, **TypeScript**, **Python**, **Go**, **Java**.
-
----
-
-## How It Works
-
-The pipeline follows a strict fan-out → fan-in execution pattern orchestrated by LangGraph:
-
-1. **CLI** parses the command and loads credentials from a secure local config store.
-2. **Harness** validates the target directory, optionally injects LangSmith environment variables, then invokes the compiled graph.
-3. **Supervisor Node** walks the project directory (respecting `.gitignore` rules), reads all valid source files, and fans out to four specialist agents simultaneously.
-4. **Four agents** run in parallel, each receiving the full source code context and returning a structured markdown report segment.
-5. **Report Writer** collects all four outputs, clears any existing `Review/` folder, and writes the final report files to disk.
-
----
-
-## Architecture Diagram
-
-```mermaid
-graph TD
-    User[Developer]
-    CLI[CLI cli.js]
-    ConfigStore[Conf Store OS Config]
-    Harness[CodeAnalysisHarness harness.js]
-    LangSmith[LangSmith API Optional]
-    NVIDIA[NVIDIA NIM API]
-    Output[Review Folder and README.md]
-
-    User -->|code-audit start| CLI
-    CLI -->|load credentials| ConfigStore
-    CLI -->|instantiate| Harness
-    Harness -->|inject env vars| LangSmith
-    Harness -->|invoke graph| Supervisor
-
-    subgraph LangGraph
-        Supervisor[Supervisor Node]
-        FileSystem[Project Source Files]
-        SOLID[SOLID Auditor]
-        BugHunter[Bug Hunter]
-        Documenter[Documenter]
-        ReadmeWriter[README Writer]
-        ReportWriter[Report Writer]
-
-        Supervisor -->|reads files| FileSystem
-        Supervisor -->|sourceCodeFiles| SOLID
-        Supervisor -->|sourceCodeFiles| BugHunter
-        Supervisor -->|sourceCodeFiles| Documenter
-        Supervisor -->|sourceCodeFiles| ReadmeWriter
-        SOLID -->|solidAuditReport| ReportWriter
-        BugHunter -->|bugReport| ReportWriter
-        Documenter -->|architectureDoc| ReportWriter
-        ReadmeWriter -->|readmeDoc| ReportWriter
-    end
-
-    SOLID -->|LLM call| NVIDIA
-    BugHunter -->|LLM call| NVIDIA
-    Documenter -->|LLM call| NVIDIA
-    ReadmeWriter -->|LLM call| NVIDIA
-    ReportWriter -->|writes files| Output
-    Output -->|audit complete| User
-```
-
-### State Flow
-
-```mermaid
-graph TD
-    A["projectPath"]
-    B["sourceCodeFiles"]
-    C["solidAuditReport"]
-    D["bugReport"]
-    E["architectureDoc"]
-    F["readmeDoc"]
-    G["Output Files on Disk"]
-
-    A -->|Supervisor reads files| B
-    B -->|SOLID Auditor| C
-    B -->|Bug Hunter| D
-    B -->|Documenter| E
-    B -->|README Writer| F
-    C -->|Report Writer| G
-    D -->|Report Writer| G
-    E -->|Report Writer| G
-    F -->|Report Writer| G
-```
+**Who it's for:** Individual developers, tech leads, and teams who want fast, repeatable, AI-assisted code reviews, SOLID audits, bug sweeps, and documentation drafts without context-switching to a browser or IDE plugin.
 
 ---
 
 ## Features
 
-- **Parallel agent execution** — all four analysis agents run concurrently via LangGraph fan-out edges, minimizing total wall-clock time.
-- **SOLID principles audit** — per-principle (S/O/L/I/D) PASS/FAIL verdicts backed by code citations and concrete refactoring examples.
-- **Logical bug detection** — file-by-file scan with exact line references, code snippets, root-cause explanations, and corrected code.
-- **Architecture documentation** — unified system-level overview with module responsibilities, data flows, dependencies, and an auto-generated Mermaid diagram.
-- **README generation** — professional, codebase-specific GitHub README with all standard sections populated.
-- **`.gitignore`-aware file ingestion** — automatically excludes `node_modules`, build artifacts, and any custom ignore rules.
-- **Secure credential storage** — API keys are persisted via `conf` (OS-native config store), never in plain environment files for production use.
-- **Optional LangSmith tracing** — full execution metrics streamed to LangSmith when a key is supplied.
-- **Rate-limit guard** — 2-second sleep between per-file Bug Hunter calls to stay within NIM API rate limits.
-- **Global CLI install** — ships as a `code-audit` binary via the `bin` field in `package.json`.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
+| Command | Description |
 |---|---|
-| Runtime | Node.js (ESM, `"type": "module"`) |
-| CLI Framework | [Commander.js](https://github.com/tj/commander.js) v12 |
-| Agent Orchestration | [LangGraph](https://github.com/langchain-ai/langgraphjs) v0.2 |
-| LLM Abstraction | [LangChain](https://github.com/langchain-ai/langchainjs) / `@langchain/openai` v0.3 |
-| LLM Backend | [NVIDIA NIM API](https://build.nvidia.com/) (OpenAI-compatible) |
-| Recommended Model | `meta/llama-3.1-70b-instruct` |
-| Config Storage | [conf](https://github.com/sindresorhus/conf) v12 |
-| Gitignore Parsing | [ignore](https://github.com/kaelzhang/node-ignore) v6 |
-| Observability | [LangSmith](https://smith.langchain.com/) (optional) |
-| Env Management | [dotenv](https://github.com/motdotla/dotenv) v16 |
+| `audit` | Deep SOLID-principles audit across an entire repository. Produces a structured Markdown report covering architectural overview, per-component violations, and refactoring recommendations. |
+| `bugs` | Static logic and vulnerability sweep. Identifies bugs, edge-case failures, and unsafe patterns across your codebase. |
+| `docs` | Generates a full `ARCHITECTURE.md` — modular blueprints, data-flow documentation, and component relationship maps. |
+| `readme` | Drafts a production-ready `README.md` for any repository based on its actual source layout and purpose. |
+| `review` | Inline code review for a single file or directory. Outputs a formatted terminal table with analysis metrics. |
+| `explain` | Plain-language explanation of what a file or module does — useful for onboarding or unfamiliar codebases. |
+| `init` | First-time interactive setup. Selects providers, stores API keys globally under `~/.code-agent/config.json`. |
+| _(no args)_ | Launches the interactive **TUI dashboard** — a full-screen terminal UI for selecting provider, model, command, and target path without typing flags. |
 
 ---
 
-## Project Structure
+## Architecture
 
 ```
-solid-agent-harness/
-├── cli.js              # Entry point — Commander CLI with `init` and `start` commands
-├── harness.js          # CodeAnalysisHarness class — validates input, manages LangSmith injection, invokes graph
-├── graph.js            # LangGraph StateGraph definition — wires all nodes and edges into a compiled pipeline
-├── agents.js           # All six agent node functions: supervisor, solidAuditor, bugHunter, documenter, readmeWriter, reportWriter
-├── state.js            # AnalyzerState annotation schema + readProjectFiles() filesystem walker
-├── package.json        # Project manifest, dependencies, and `code-audit` bin mapping
-├── .env                # Local environment variables (development only — not for production secrets)
-├── .gitignore          # Standard Node.js gitignore
-└── Review/             # Auto-generated output folder (created/cleared on each run)
-    ├── SOLID_AUDIT.md  # SOLID principles audit report
-    ├── BUG_REPORT.md   # Logical bug and edge-case report
-    └── ARCHITECTURE.md # System architecture documentation
+bin/code-agent.js          # Executable entrypoint (shebang → node)
+    ↓
+src/cli.js                 # Commander.js program — routes subcommands and launches TUI
+    ↓
+src/<feature>/command.js   # Per-feature handler: reads files, resolves provider/model, writes reports
+    ↓
+src/core/harness.js        # AgentHarness — selects the correct LangGraph pipeline and invokes it
+    ↓
+src/<feature>/graph.js     # LangGraph StateGraph — defines nodes, edges, and state annotations
+    ↓
+src/<feature>/agent.js     # LangGraph node function — calls the provider with the feature prompt
+    ↓
+src/providers/             # ProviderFactory + OpenAI / Anthropic / Gemini / NVIDIA implementations
+    ↓
+LLM API                    # Remote model endpoint (OpenAI, Anthropic, Gemini, NVIDIA NIM)
+    ↓
+Terminal output / Report   # Markdown file written to Review/ or formatted cli-table3 output
 ```
 
-> `README.md` in the project root is also overwritten on each run by the README Writer agent.
+### Data Flow Diagram
 
----
+```mermaid
+flowchart TD
+    A([CLI Input\ncode-audit audit ./myrepo]) --> B[bin/code-agent.js\nEntrypoint]
+    B --> C[src/cli.js\nCommander Router]
+    C --> D[src/audit/command.js\nhandleAuditCommand]
+    D --> E[core/config.js\nConfigManager\nAPI key lookup]
+    D --> F[core/fileSystem.js\nreadRepositoryFiles]
+    D --> G[core/harness.js\nAgentHarness.run]
+    G --> H[audit/graph.js\nauditGraphPipeline\nLangGraph StateGraph]
+    H --> I[audit/agent.js\nsolidAgentNode\nLangGraph Node]
+    I --> J[providers/ProviderFactory\nselect provider class]
+    J --> K1[OpenAIProvider]
+    J --> K2[AnthropicProvider]
+    J --> K3[GeminiProvider]
+    J --> K4[NvidiaProvider]
+    K1 & K2 & K3 & K4 --> L([LLM API\nRemote Endpoint])
+    L --> M[analysisResult\nMarkdown string]
+    M --> N{Output Type}
+    N -->|audit / bugs / docs / readme| O[writeReportFile\nReview/*.md]
+    N -->|review / explain| P[cli-table3\nFormatted Terminal Table]
+```
 
-## Prerequisites
+### Key Layers
 
-- **Node.js** v18 or higher (ESM support required)
-- **npm** v9 or higher
-- **NVIDIA NIM API Key** — get one at [build.nvidia.com](https://build.nvidia.com/)
-- **LangSmith API Key** _(optional)_ — get one at [smith.langchain.com](https://smith.langchain.com/)
+- **`bin/`** — Thin shebang entrypoint. Imports `src/cli.js` and hands off.
+- **`src/cli.js`** — Commander.js program. Defines `init` and the default TUI action. Direct subcommands (`audit`, `bugs`, etc.) live in `bin/code-agent.js`.
+- **`src/<feature>/command.js`** — The command handler. Accepts `(filePath, providerName, modelName)`. Loads config for API key, falls back to saved defaults if provider/model are not passed explicitly.
+- **`src/core/harness.js`** — `AgentHarness` class. Receives a provider instance and model string, selects the matching LangGraph pipeline, and invokes it with a unified `inputState`.
+- **`src/<feature>/graph.js`** — LangGraph `StateGraph` with `repositoryFiles` and `analysisResult` state annotations. Single-node pipelines for focused, deterministic execution.
+- **`src/providers/`** — `BaseProvider` abstract class extended by `OpenAIProvider`, `AnthropicProvider`, `GeminiProvider`, and `NvidiaProvider`. Each implements `invoke(messages, model)` and `getModels()`.
+- **`src/core/config.js`** — `ConfigManager` persists credentials to `~/.code-agent/config.json`. Loaded on every handler invocation for API key resolution.
 
 ---
 
 ## Installation
 
-**Option 1 — Global install (recommended for CLI use)**
+### Prerequisites
+
+- **Node.js >= 18.0.0**
+- API key(s) for at least one supported provider
+
+### Steps
 
 ```bash
-npm install -g .
-```
+# Clone the repository
+git clone https://github.com/your-username/code-audit-harness.git
+cd code-audit-harness
 
-This registers `code-audit` as a global binary. On **Windows**, npm installs global binaries into a folder like `C:\Users\<you>\AppData\Roaming\npm`. If the command is not found after install, that folder must be on your `PATH`.
-
-Check and fix it in one step (PowerShell):
-
-```powershell
-# 1. Confirm where npm puts global binaries
-npm config get prefix
-
-# 2. Add it to your session PATH immediately
-$env:PATH += ";$(npm config get prefix)"
-
-# 3. Verify it works
-code-audit --version
-```
-
-To make the PATH change permanent, add the `npm config get prefix` output to your system environment variables via:
-`System Properties → Advanced → Environment Variables → Path → Edit → New`.
-
-**Option 2 — Run without global install (npx / node directly)**
-
-```bash
-# From inside the project folder
-node cli.js init
-node cli.js start .
-
-# Or via npx (no global install needed)
-npx . init
-npx . start .
-```
-
-**Option 3 — Local install (development / contributing)**
-
-```bash
-git clone https://github.com/your-username/solid-agent-harness.git
-cd solid-agent-harness
+# Install dependencies
 npm install
+
+# Link globally so the code-audit command is available system-wide
+npm link
+```
+
+To unlink later:
+
+```bash
+npm unlink -g code-audit-harness
 ```
 
 ---
 
-## Configuration
+## Setup
 
-Before running any audit, you must store your credentials using the `init` command. Credentials are saved to your OS-native application config directory via `conf` and are never committed to source control.
+Run `init` once to configure your provider credentials:
 
 ```bash
 code-audit init
 ```
 
-You will be prompted for:
+You will be prompted to:
 
-| Prompt | Required | Description |
-|---|---|---|
-| NVIDIA API Key | Yes | Your NIM API key from `build.nvidia.com`. Input is hidden (no echo). |
-| NVIDIA Model Name | Yes | The NIM model to use. Recommended: `meta/llama-3.1-70b-instruct` |
-| LangSmith API Key | No | Optional. Enables full execution tracing on LangSmith. Input is hidden. |
+1. **Select providers** — checkbox list of `openai`, `anthropic`, `gemini`, `nvidia`
+2. **Enter API keys** — one masked password prompt per selected provider
 
-If credentials already exist, you will be asked to confirm before overwriting.
+Credentials are written to `~/.code-agent/config.json`. The first provider you select becomes the default for direct CLI commands. You can re-run `init` at any time to update keys or add new providers.
 
-**Config is stored at:**
-- **Windows:** `%APPDATA%\code-audit-harness\config.json`
-- **macOS:** `~/Library/Preferences/code-audit-harness/config.json`
-- **Linux:** `~/.config/code-audit-harness/config.json`
+```
+Initializing Global Multi-Provider Credentials Engine Store...
+? Select and enable available model provider endpoints: (Press <space> to select)
+ ◉ openai
+ ◯ anthropic
+ ◉ gemini
+ ◯ nvidia
 
-### Advanced — Environment Variables
+Enter API Secret token authentication key for [OPENAI]: ****************
+Enter API Secret token authentication key for [GEMINI]: ****************
 
-For CI/CD or containerized environments, you can set credentials via environment variables or a `.env` file in the project root. The harness reads LangSmith variables from `process.env` directly:
-
-```env
-# .env (for local development only)
-LANGSMITH_TRACING=true
-LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_API_KEY=your_langsmith_key
-LANGSMITH_PROJECT=code-audit-cli-run
+✓ Persistent configurations profiles written safely inside .code-agent/config.json.
+Setup complete! Run code-audit now to launch your interactive environment.
 ```
 
 ---
 
 ## Usage
 
-### Audit the current directory
+### Direct CLI Commands
+
+All commands accept a path to a file or directory as their target.
 
 ```bash
-code-audit start .
+# SOLID principles audit — writes Review/SOLID_AUDIT.md
+code-audit audit ./src
+
+# Bug and logic sweep — writes Review/BUG_REPORT.md
+code-audit bugs ./src
+
+# Architecture documentation — writes Review/ARCHITECTURE.md
+code-audit docs ./my-project
+
+# README generation — writes Review/README.md
+code-audit readme ./my-project
+
+# Inline code review — outputs formatted terminal table
+code-audit review ./src/auth/login.js
+
+# Plain-language explanation — outputs formatted terminal table
+code-audit explain ./src/core/harness.js
 ```
 
-### Audit an absolute path
+Reports are written to a `Review/` directory inside the target path by default. The output directory can be customised via the `outputDir` field in `~/.code-agent/config.json`.
+
+#### Example terminal output (review / explain)
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ Analysis Metric Cluster Output                                                 │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ ## Code Review Summary                                                         │
+│                                                                                │
+│ **Overall Quality:** Good                                                      │
+│ **Complexity:** Medium                                                         │
+│                                                                                │
+│ ### Observations                                                               │
+│ - Error handling is consistent across all branches                             │
+│ - Consider extracting the provider resolution logic into a shared utility      │
+│ - Missing input validation on the `filePath` parameter                         │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Interactive TUI Dashboard
+
+Run `code-audit` with no arguments to launch the full-screen terminal dashboard:
 
 ```bash
-code-audit start /absolute/path/to/your/project
+code-audit
 ```
 
-```bash
-# Windows
-code-audit start C:\Users\you\projects\my-app
+The TUI presents three selector panels and a path input:
+
+```
+┌─────────────────── Solid Agent Harness ────────────────────┐
+│  ┌─ Path ──────────────────────────────────────────────┐   │
+│  │  ./my-project                                       │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+
+┌─ Provider ──────┐   ┌─ Command ───────┐   ┌─ Model ────────────────────┐
+│   OPENAI        │   │   audit         │   │   gpt-4o                   │
+└─────────────────┘   └─────────────────┘   └────────────────────────────┘
+
+        [Tab] cycle   [←/→] change   [Enter] run   [Esc] quit
 ```
 
-### Check the installed version
+- **Tab** cycles focus between the four panels
+- **← / →** (or Up/Down) cycles options within the focused panel
+- **Enter** (while the path input is focused) executes the selected command
+- The Model panel dynamically fetches available models from the selected provider's API
 
-```bash
-code-audit --version
-```
-
-### Re-initialize credentials
-
-```bash
-code-audit init
-```
-
-### Full example session
-
-```bash
-# 1. Install globally
-npm install -g .
-
-# 2. Configure credentials
-code-audit init
-# > Enter NVIDIA API Key: ****
-# > Enter NVIDIA Model Name: meta/llama-3.1-70b-instruct
-# > Enter LangSmith API Key (Optional): ****
-
-# 3. Run the audit
-code-audit start /path/to/your/codebase
-
-# Expected output:
-# ====================================================
-# 🚀 HARNESS FRAMEWORK INITIALIZED
-# ====================================================
-# [Harness Memory] LangSmith Key detected. Streaming execution metrics trace pipeline...
-# ...[Supervisor Agent] Compiling file tree paths...
-# ...[SOLID Agent] Reviewing patterns & drafting changes...
-# ...[Bug Hunter Agent] Testing variable boundaries & hunting flaws...
-# ...[Documenter Agent] Designing systemic infrastructure docs...
-# ...[README Agent] Generating GitHub README.md...
-# [Supervisor Agent] Assembling consolidated report file markdown bundle...
-# ====================================================
-# ✨ AUDIT COMPLETED: Execution took 42.18s
-# 📄 Results aggregated safely inside: /path/to/codebase/CODE_ANALYSIS_REPORT.md
-# ====================================================
-```
+Provider and model selection in the TUI are passed directly to the command handler — your saved config default is used only as a fallback when running direct CLI commands.
 
 ---
 
-## Output
+## Supported Providers
 
-After a successful run, the following files are written into the target project directory:
+| Provider | Default Model | Notes |
+|---|---|---|
+| **OpenAI** | `gpt-4o` | Full GPT model family. Models fetched live from the OpenAI API. |
+| **Anthropic** | `claude-3-5-sonnet-latest` | Claude 3 and Claude 4 model families supported. |
+| **Google Gemini** | `gemini-1.5-pro` | Via `@langchain/google-genai`. Requires a Google AI Studio API key. |
+| **NVIDIA NIM** | `meta/llama3-70b-instruct` | Uses the OpenAI-compatible NIM endpoint at `integrate.api.nvidia.com/v1`. Supports any model available in your NVIDIA NIM subscription. |
 
-```
-<your-project>/
-├── README.md               # Overwritten with AI-generated professional README
-└── Review/
-    ├── SOLID_AUDIT.md      # Per-principle SOLID verdict with code citations
-    ├── BUG_REPORT.md       # Per-file bug report with fixes
-    └── ARCHITECTURE.md     # System architecture doc with Mermaid diagram
-```
-
-> The `Review/` folder is fully cleared before each run to prevent stale report accumulation.
+Model lists are fetched live from each provider's API when using the TUI. If the fetch fails, a curated fallback list is used automatically.
 
 ---
 
-## Agent Reference
-
-### Supervisor Node
-Walks the target directory using `readProjectFiles()`, respects `.gitignore` rules, filters to valid source extensions (`.js`, `.ts`, `.py`, `.go`, `.java`), and fans the file list out to all downstream agents via the shared `AnalyzerState`.
-
-### SOLID Auditor
-Receives the full project dump and produces a formal SOLID audit. For each principle it emits a PASS/FAIL/NOT APPLICABLE verdict with specific file and function citations, technical reasoning, and a concrete refactored code example. `NOT APPLICABLE` is used for LSP and OCP when no inheritance or plugin patterns exist.
-
-### Bug Hunter
-Processes files one-by-one with a 2-second rate-limit gap between calls. For each file it reports only real bugs — never generic examples. Each finding includes file name, approximate line number, the exact problematic snippet, root-cause classification, and a corrected code block.
-
-### Documenter
-Produces a unified system architecture document (not per-file isolation). Covers system overview, module responsibilities, inter-module data flow, external dependencies, entry points, and a Mermaid `graph TD` diagram of all component interactions.
-
-### README Writer
-Generates a complete, industry-standard `README.md` scoped to the actual codebase — no generic placeholders. Covers all standard sections: overview, features, tech stack, project structure, prerequisites, installation, usage, and configuration.
-
-### Report Writer
-Collects all four agent outputs from the shared state, creates (or clears) the `Review/` folder, and writes `SOLID_AUDIT.md`, `BUG_REPORT.md`, `ARCHITECTURE.md`, and the root `README.md` to disk.
-
----
-
-## LangSmith Tracing (Optional)
-
-When a LangSmith API key is stored via `code-audit init`, the harness automatically sets the required environment variables before invoking the graph:
+## Project Structure
 
 ```
-LANGSMITH_TRACING=true
-LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_API_KEY=<your key>
-LANGSMITH_PROJECT=code-audit-cli-run
+code-audit-harness/
+├── bin/
+│   └── code-agent.js          # Global executable entrypoint
+├── src/
+│   ├── cli.js                 # Commander.js program definition
+│   ├── audit/
+│   │   ├── agent.js           # LangGraph node — SOLID audit
+│   │   ├── command.js         # handleAuditCommand handler
+│   │   ├── graph.js           # LangGraph StateGraph pipeline
+│   │   └── prompt.js          # System prompt for audit agent
+│   ├── bugs/
+│   │   ├── agent.js
+│   │   ├── command.js         # handleBugsCommand handler
+│   │   ├── graph.js
+│   │   └── prompt.js
+│   ├── docs/
+│   │   ├── agent.js
+│   │   ├── command.js         # handleDocsCommand handler
+│   │   ├── graph.js
+│   │   └── prompt.js
+│   ├── readme/
+│   │   ├── agent.js
+│   │   ├── command.js         # handleReadmeCommand handler
+│   │   ├── graph.js
+│   │   └── prompt.js
+│   ├── review/
+│   │   ├── agent.js
+│   │   ├── command.js         # handleReviewCommand handler
+│   │   ├── graph.js
+│   │   └── prompt.js
+│   ├── explain/
+│   │   ├── agent.js
+│   │   ├── command.js         # handleExplainCommand handler
+│   │   ├── graph.js
+│   │   └── prompt.js
+│   ├── core/
+│   │   ├── config.js          # ConfigManager — credential persistence
+│   │   ├── fileSystem.js      # Repository file reader and report writer
+│   │   └── harness.js         # AgentHarness — pipeline orchestrator
+│   ├── providers/
+│   │   ├── baseProvider.js    # Abstract BaseProvider class
+│   │   ├── providerFactory.js # ProviderFactory.create(name, config)
+│   │   ├── openai.js
+│   │   ├── anthropic.js
+│   │   ├── gemini.js
+│   │   └── nvidia.js
+│   └── ui/
+│       └── interactive.js     # Blessed TUI dashboard
+├── Review/                    # Default output directory for generated reports
+├── .env                       # Optional local environment overrides
+├── package.json
+└── README.md
 ```
-
-This enables full per-node execution traces, token usage, latency breakdowns, and run comparisons inside the LangSmith dashboard at [smith.langchain.com](https://smith.langchain.com/). Without a key, execution is logged locally to the console only.
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please follow these steps:
+Contributions are welcome. Please follow these guidelines:
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/your-feature-name`
-3. Commit your changes with clear messages: `git commit -m "feat: add support for Ruby files"`
-4. Push to your branch: `git push origin feature/your-feature-name`
-5. Open a pull request against `main` with a description of your changes.
+### Branch Strategy
+
+- `main` — stable release branch. Direct commits are not permitted.
+- `v2` — current active development branch. Feature work branches off here.
+- `v1` — legacy branch, maintained for reference only.
+
+Create feature branches from `v2`:
+
+```bash
+git checkout v2
+git checkout -b feature/your-feature-name
+```
+
+### Pull Request Guidelines
+
+- Keep PRs focused — one feature or fix per PR
+- Include a clear description of what changed and why
+- If adding a new provider, follow the `BaseProvider` interface: implement `invoke(messages, model)` and `getModels()`
+- If adding a new command, follow the four-file pattern: `agent.js`, `command.js`, `graph.js`, `prompt.js` — and register the handler in `src/core/harness.js` and `src/ui/interactive.js`
+- Run a manual smoke test against at least one provider before opening a PR
+
+---
+
+## Known Limitations
+
+- **No streaming output** — all provider calls are single-shot invocations. Large repositories may have a noticeable wait before output appears.
+- **Context window limits** — very large codebases may exceed model context windows. The file reader does not currently chunk or summarise input.
+- **Model list fetching** — live model list fetching relies on undocumented or informal endpoints for some providers; the fallback static lists may become stale as providers release new models.
+- **NVIDIA NIM debug logs** — the NVIDIA provider currently emits `DEBUG` console lines during invocation. This will be removed in a future release.
+- **No test suite** — automated testing is not yet configured. Contributions adding a test framework (e.g., Vitest) are welcome.
+
+---
+
+## Roadmap
+
+- [ ] Streaming output support for long-running analyses
+- [ ] Input chunking / summarisation for large repositories
+- [ ] `edit` command — AI-assisted in-place file editing (scaffold present at `src/edit/`)
+- [ ] Remove debug logging from NVIDIA provider
+- [ ] Configurable output directory via CLI flag
+- [ ] Vitest-based unit and integration test suite
+- [ ] CI pipeline (GitHub Actions) for lint and smoke tests
 
 ---
 
 ## License
 
-This project is licensed under the terms of the [LICENSE](./LICENSE) file included in this repository.
+[MIT](./LICENSE)

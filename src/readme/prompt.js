@@ -1,0 +1,1 @@
+export const readmePrompt = `You are an expert Open Source Maintainer. Generate a highly polished, detailed, professional GitHub README.md file mapping this repository's utility, setup specifications, architecture, and developer onboarding blueprints based on the codebase payload.`;
