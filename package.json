@@ -1,6 +1,6 @@
 {
   "name": "code-audit-harness",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Multi-agent code safety and architectural auditing tool.",
   "main": "src/cli.js",
   "type": "module",
@@ -8,7 +8,9 @@
     "code-audit": "./bin/code-agent.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@langchain/anthropic": "^0.3.0",
@@ -25,6 +27,10 @@
     "ignore": "^6.0.2",
     "inquirer": "^14.0.2",
     "ora": "9.4.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -15,8 +15,6 @@ export class NvidiaProvider extends BaseProvider {
             temperature: 0.1,
             configuration: { baseURL: 'https://integrate.api.nvidia.com/v1' }
         });
-        console.log('DEBUG model:', model || this.defaultModel);
-        console.log('DEBUG baseURL:', client.clientConfig?.baseURL ?? 'unknown');
         const response = await client.invoke(messages);
         return response.content;
     }

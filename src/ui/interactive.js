@@ -144,13 +144,13 @@ export async function launchInteractiveTUI() {
     });
 
     commandBox.key(['left', 'right', 'up', 'down'], (ch, key) => {
-        const dir = key.name === 'left' || 'down' ? -1 : 1;
+        const dir = (key.name === 'left' || key.name === 'down') ? -1 : 1;
         commandIndex = (commandIndex + dir + COMMANDS.length) % COMMANDS.length;
         render();
     });
 
     modelBox.key(['left', 'right', 'up', 'down'], (ch, key) => {
-        const dir = key.name === 'left' || 'down' ? -1 : 1;
+        const dir = (key.name === 'left' || key.name === 'down') ? -1 : 1;
         modelIndex = (modelIndex + dir + models.length) % models.length;
         render();
     });
