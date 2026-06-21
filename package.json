@@ -1,6 +1,6 @@
 {
   "name": "code-audit-harness",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Multi-agent code safety and architectural auditing tool.",
   "main": "src/cli.js",
   "type": "module",

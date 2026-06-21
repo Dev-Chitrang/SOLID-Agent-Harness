@@ -25,7 +25,7 @@ export async function handleAuditCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const markdownOutput = await harness.run('audit', filePayload);
+        const markdownOutput = await harness.run('audit', filePayload, filePath);
 
         writeReportFile(filePath, globalConfig.outputDir || 'Review', 'SOLID_AUDIT.md', markdownOutput);
         spinner.succeed(chalk.green(`Audit evaluation complete. Report written to ${globalConfig.outputDir || 'Review'}/SOLID_AUDIT.md`));

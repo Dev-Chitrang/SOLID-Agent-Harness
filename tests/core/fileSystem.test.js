@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
-import { readRepositoryFiles, writeReportFile } from '../../src/core/fileSystem.js';
+import { readRepositoryFiles, writeReportFile, readReportFile } from '../../src/core/fileSystem.js';
 
 // Uses real fs against a temp directory — no mocking needed for integration-style tests
 let tmpDir;
@@ -116,5 +116,24 @@ describe('writeReportFile()', () => {
 
         const filePath = path.join(tmpDir, 'Reports', 'Sub', 'BUGS.md');
         expect(fs.existsSync(filePath)).toBe(true);
+    });
+});
+
+describe('readReportFile()', () => {
+    it('returns null when the file does not exist', () => {
+        const result = readReportFile(tmpDir, 'Review', 'NONEXISTENT.md');
+        expect(result).toBeNull();
+    });
+
+    it('returns file contents when the file exists', () => {
+        writeReportFile(tmpDir, 'Review', 'SOLID_AUDIT.md', '# Audit Report');
+        const result = readReportFile(tmpDir, 'Review', 'SOLID_AUDIT.md');
+        expect(result).toBe('# Audit Report');
+    });
+
+    it('returns correct content for nested output dirs', () => {
+        writeReportFile(tmpDir, 'Reports/Sub', 'BUG_REPORT.md', '# Bugs Here');
+        const result = readReportFile(tmpDir, 'Reports/Sub', 'BUG_REPORT.md');
+        expect(result).toBe('# Bugs Here');
     });
 });

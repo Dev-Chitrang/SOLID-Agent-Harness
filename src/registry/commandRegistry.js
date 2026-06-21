@@ -8,7 +8,7 @@ import { handleExplainCommand } from '../explain/command.js';
 import { handleCiFastCommand } from '../composite/ci-fast/command.js';
 import { handleQualityCommand } from '../composite/quality/command.js';
 import { handleDocsSuiteCommand } from '../composite/docs-suite/command.js';
-import { handleOnboardCommand } from '../composite/onboard/command.js';
+import { handleOnboardCommand } from '../composite/onboarding/command.js';
 import { handleFullCommand } from '../composite/full/command.js';
 
 export const commandRegistry = {

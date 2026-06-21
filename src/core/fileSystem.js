@@ -54,3 +54,19 @@ export function writeReportFile(projectRoot, outputDir, fileName, markdownConten
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     fs.writeFileSync(path.join(targetDir, fileName), markdownContent, 'utf8')
 }
+
+export function readReportFile(projectRoot, outputDir, fileName) {
+    const filePath = path.resolve(projectRoot, outputDir, fileName);
+    if (!fs.existsSync(filePath)) return null;
+    return fs.readFileSync(filePath, 'utf8');
+}
+
+export function fileExists(projectRoot, outputDir, fileName) {
+    const filePath = path.resolve(projectRoot, outputDir, fileName);
+    return fs.existsSync(filePath);
+}
+
+export function readExistingFile(projectRoot, outputDir, fileName) {
+    const filePath = path.resolve(projectRoot, outputDir, fileName);
+    return fs.readFileSync(filePath, 'utf8');
+}
