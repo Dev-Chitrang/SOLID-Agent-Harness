@@ -247,7 +247,7 @@ Model lists are fetched live from each provider's API when using the TUI. If the
 
 ## Installation
 
-**Prerequisites:** Node.js >= 18.0.0, and an API key for at least one supported provider.
+**Prerequisites:** Node.js >= 20.17, and an API key for at least one supported provider.
 
 ```bash
 # Clone the repository

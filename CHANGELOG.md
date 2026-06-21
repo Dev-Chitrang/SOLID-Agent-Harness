@@ -31,11 +31,20 @@ outputState.finalSummary ?? outputState.analysisResult
 
 and replaced it with explicit validation. If neither field exists, `AgentHarness` now throws an error instead of returning undefined, preventing hidden failures.
 
+* Official Node.js support updated to Node.js 20+.
+
 ### Fixed
 
 * **Composite command correctness validation** — orchestration paths are now covered by automated tests, reducing the risk of regressions in parallel fan-out and join behavior.
 * **Registry lookup safety** — invalid command or graph names are now consistently validated and tested.
 * **Documentation accuracy** — installation instructions and repository references now point to the actual repository URL.
+
+### Removed
+* Node.js 18 compatibility from the supported environment matrix.
+
+### Notes
+
+* Node.js 18 support was dropped because several upstream dependencies (including ora, inquirer, and transitive packages) now require Node.js 20+, making Node.js 20 the baseline runtime for SOLID-Agent-Harness.
 
 ---
 
