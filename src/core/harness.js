@@ -25,6 +25,17 @@ export class AgentHarness {
         };
 
         const outputState = await workflowCircuit.invoke(inputState, runtimeConfig);
-        return outputState.finalSummary ?? outputState.analysisResult;
+
+        if (outputState.finalSummary != null && outputState.finalSummary !== '') {
+            return outputState.finalSummary;
+        }
+        if (outputState.analysisResult != null && outputState.analysisResult !== '') {
+            return outputState.analysisResult;
+        }
+
+        throw new Error(
+            `Graph "${commandType}" completed but produced no output. ` +
+            `Neither finalSummary nor analysisResult is present in the output state.`
+        );
     }
 }

@@ -7,6 +7,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [3.0.1] — 2026-06-21
+
+### Added
+
+* **Registry test coverage expanded** — added Vitest tests for `graphRegistry` and `commandRegistry`, verifying valid command/graph lookup and error handling for unknown entries.
+* **Composite workflow tests** — added tests covering `full`, `quality`, `docs-suite`, `onboarding`, and `ci-fast` orchestration behavior.
+* **Critic loop tests** — added tests validating successful completion, retry behavior, and enforcement of `recursionLimit`.
+* **Preflight routing tests** — added tests ensuring unchanged artifacts are skipped, changed artifacts enter update mode, and missing outputs trigger fresh generation.
+* **README improvements**
+
+  * Added CI status badge.
+  * Added a dedicated **Limitations** section documenting provider dependencies, token usage, and execution cost considerations.
+  * Replaced placeholder repository URLs with the actual GitHub repository.
+
+### Changed
+
+* **`harness.js` fail-fast behavior** — removed the silent fallback:
+
+```js
+outputState.finalSummary ?? outputState.analysisResult
+```
+
+and replaced it with explicit validation. If neither field exists, `AgentHarness` now throws an error instead of returning undefined, preventing hidden failures.
+
+### Fixed
+
+* **Composite command correctness validation** — orchestration paths are now covered by automated tests, reducing the risk of regressions in parallel fan-out and join behavior.
+* **Registry lookup safety** — invalid command or graph names are now consistently validated and tested.
+* **Documentation accuracy** — installation instructions and repository references now point to the actual repository URL.
+
+---
+
+
+
 ## [3.0.0] — 2026-06-21
 
 ### Added

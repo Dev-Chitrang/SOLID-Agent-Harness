@@ -1,5 +1,7 @@
 # SOLID-Agent-Harness
 
+[![CI](https://github.com/Dev-Chitrang/SOLID-Agent-Harness/actions/workflows/ci.yml/badge.svg)](https://github.com/Dev-Chitrang/SOLID-Agent-Harness/actions/workflows/ci.yml)
+
 A language-agnostic developer tooling platform built with Node.js, LangChain, and LangGraph for repository analysis, documentation generation, and quality workflows.
 
 **What it is not:** SOLID-Agent-Harness is not a chatbot, not an autonomous coding agent, and not a browser-based IDE plugin. It is a structured CLI tool that runs deterministic, graph-based LLM workflows against a local codebase and writes structured outputs to your filesystem or terminal.
@@ -249,8 +251,8 @@ Model lists are fetched live from each provider's API when using the TUI. If the
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/solid-agent-harness.git
-cd solid-agent-harness
+git clone https://github.com/Dev-Chitrang/SOLID-Agent-Harness.git
+cd SOLID-Agent-Harness
 
 # Install dependencies
 npm install
@@ -393,6 +395,16 @@ Coverage includes:
 - `AgentHarness` — registry dispatch, `configurable` context (provider, model, targetPath, outputDir), `recursionLimit`, `finalSummary` fallback for composite graphs.
 - `BaseProvider` — abstract method enforcement and subclass override.
 - `ProviderFactory` — all four providers, case-insensitive matching, custom `defaultModel`, unknown provider error.
+
+---
+
+## Limitations
+
+- Depends on external LLM providers — requires a valid API key and network access.
+- Cost and latency vary by provider and model; large repositories will consume more tokens.
+- Large repositories may hit context-window limits depending on the model chosen.
+- Outputs are recommendations only and should be reviewed by a developer before acting on them.
+- Composite commands run multiple LLM workflows sequentially per branch and may take significantly longer than individual commands.
 
 ---
 
