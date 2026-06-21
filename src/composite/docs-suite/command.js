@@ -62,7 +62,9 @@ export async function handleDocsSuiteCommand(
         const markdownOutput =
             await harness.run(
                 'docs-suite',
-                filePayload
+                filePayload,
+                filePath,
+                globalConfig.outputDir || 'Review'
             );
 
         writeReportFile(

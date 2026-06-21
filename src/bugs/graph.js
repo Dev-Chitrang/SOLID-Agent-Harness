@@ -9,7 +9,7 @@ Evaluate the bug report output and return JSON only: { "score": <1-10>, "feedbac
 Score >= 8 means the report is comprehensive, well-grouped by severity, and actionable. Score < 8 means it needs more findings or clarity.`;
 
 const bugCriticNode = createCriticNode(bugCriticPrompt, 'bugScore');
-const documentStateNode = createDocumentStateNode('Review', 'BUG_REPORT.md');
+const documentStateNode = createDocumentStateNode('BUG_REPORT.md');
 
 const BugState = Annotation.Root({
     ...DocumentState,

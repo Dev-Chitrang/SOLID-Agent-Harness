@@ -19,7 +19,7 @@ export async function handleDocsCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const markdownOutput = await harness.run('docs', filePayload, filePath);
+        const markdownOutput = await harness.run('docs', filePayload, filePath, globalConfig.outputDir || 'Review');
 
         writeReportFile(filePath, globalConfig.outputDir || 'Review', 'ARCHITECTURE.md', markdownOutput);
         spinner.succeed(chalk.green(`Architecture file generated at ${globalConfig.outputDir || 'Review'}/ARCHITECTURE.md`));

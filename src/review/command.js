@@ -20,7 +20,7 @@ export async function handleReviewCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const responseText = await harness.run('review', filePayload);
+        const responseText = await harness.run('review', filePayload, filePath);
         spinner.succeed(chalk.green(`Review execution complete.\n`));
 
         const table = new Table({

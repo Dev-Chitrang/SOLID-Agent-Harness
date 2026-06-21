@@ -47,9 +47,9 @@ describe('AgentHarness', () => {
             expect(harness.model).toBe('gpt-4o');
         });
 
-        it('sets recursionLimit to 4', () => {
+        it('sets recursionLimit to 25', () => {
             const harness = new AgentHarness(mockProvider, 'gpt-4o');
-            expect(harness.recursionLimit).toBe(4);
+            expect(harness.recursionLimit).toBe(25);
         });
     });
 
@@ -133,7 +133,25 @@ describe('AgentHarness', () => {
             await harness.run('audit', mockFiles, '/project');
 
             const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
-            expect(callArgs[1].recursionLimit).toBe(4);
+            expect(callArgs[1].recursionLimit).toBe(25);
+        });
+
+        it('passes outputDir in configurable context', async () => {
+            const { auditGraphPipeline } = await import('../../src/audit/graph.js');
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            await harness.run('audit', mockFiles, '/project', 'Output');
+
+            const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
+            expect(callArgs[1].configurable.outputDir).toBe('Output');
+        });
+
+        it('defaults outputDir to "Review" when not provided', async () => {
+            const { auditGraphPipeline } = await import('../../src/audit/graph.js');
+            const harness = new AgentHarness(mockProvider, 'gpt-4o');
+            await harness.run('audit', mockFiles, '/project');
+
+            const callArgs = auditGraphPipeline.invoke.mock.calls.at(-1);
+            expect(callArgs[1].configurable.outputDir).toBe('Review');
         });
 
         it('returns finalSummary when present (composite graphs)', async () => {

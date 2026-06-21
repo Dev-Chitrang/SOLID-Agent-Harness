@@ -62,7 +62,9 @@ export async function handleFullCommand(
         const markdownOutput =
             await harness.run(
                 'full',
-                filePayload
+                filePayload,
+                filePath,
+                globalConfig.outputDir || 'Review'
             );
 
         writeReportFile(

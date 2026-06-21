@@ -4,10 +4,10 @@ export class AgentHarness {
     constructor(providerInstance, selectedModel) {
         this.provider = providerInstance;
         this.model = selectedModel;
-        this.recursionLimit = 4;
+        this.recursionLimit = 25;
     }
 
-    async run(commandType, filePayload, targetPath) {
+    async run(commandType, filePayload, targetPath, outputDir = 'Review') {
         const workflowCircuit = graphRegistry[commandType];
         if (!workflowCircuit) {
             throw new Error(`Unknown circuit selection matching: ${commandType}`);
@@ -19,7 +19,8 @@ export class AgentHarness {
             configurable: {
                 providerInstance: this.provider,
                 model: this.model,
-                targetPath: targetPath ?? filePayload?.[0]?.relativePath ?? '.'
+                targetPath: targetPath ?? filePayload?.[0]?.relativePath ?? '.',
+                outputDir
             }
         };
 

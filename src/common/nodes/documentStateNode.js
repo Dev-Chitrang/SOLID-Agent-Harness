@@ -1,21 +1,20 @@
-import { fileExists, readExistingFile } from '../../core/fileSystem.js'
+import { fileExists, readExistingFile } from '../../core/fileSystem.js';
 
-export function createDocumentStateNode(outputDir, fileName) {
+export function createDocumentStateNode(fileName) {
     return async function documentStateNode(state, config) {
-        const projectRoot = config.configurable.targetPath
-        const exists = fileExists(projectRoot, outputDir, fileName)
+        const projectRoot = config.configurable.targetPath;
+        const outputDir = config.configurable.outputDir ?? 'Review';
+        const exists = fileExists(projectRoot, outputDir, fileName);
 
         if (!exists) {
             return {
                 existingDocument: null,
-                documentMode: "generate"
-            }
+                documentMode: 'generate'
+            };
         }
         return {
-            existingDocument: readExistingFile(
-                projectRoot, outputDir, fileName
-            ),
-            documentMode: "update"
-        }
-    }
+            existingDocument: readExistingFile(projectRoot, outputDir, fileName),
+            documentMode: 'update'
+        };
+    };
 }

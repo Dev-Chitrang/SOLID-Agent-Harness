@@ -20,7 +20,7 @@ export const DocumentState = {
 
 export const CompositeState = {
 
-    ...BaseState,
+    repositoryFiles: Annotation({ reducer: (x, y) => y ?? x, default: () => [] }),
 
     auditReport: Annotation({ reducer: (x, y) => y ?? x, default: () => '' }),
     bugReport: Annotation({ reducer: (x, y) => y ?? x, default: () => '' }),

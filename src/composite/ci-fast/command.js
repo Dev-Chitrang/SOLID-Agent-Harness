@@ -65,7 +65,9 @@ export async function handleCiFastCommand(
         const markdownOutput =
             await harness.run(
                 'ci-fast',
-                filePayload
+                filePayload,
+                filePath,
+                globalConfig.outputDir || 'Review'
             );
         writeReportFile(
             filePath,

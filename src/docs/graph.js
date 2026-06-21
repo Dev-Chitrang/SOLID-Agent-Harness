@@ -9,7 +9,7 @@ Evaluate the documentation output and return JSON only: { "score": <1-10>, "feed
 Score >= 8 means the docs are comprehensive, include a Mermaid diagram, and clearly cover module interactions. Score < 8 means it needs more detail.`;
 
 const docsCriticNode = createCriticNode(docsCriticPrompt, 'docsScore');
-const documentStateNode = createDocumentStateNode('Review', 'ARCHITECTURE.md');
+const documentStateNode = createDocumentStateNode('ARCHITECTURE.md');
 
 const DocsState = Annotation.Root({
     ...DocumentState,

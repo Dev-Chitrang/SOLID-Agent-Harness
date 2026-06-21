@@ -61,7 +61,9 @@ export async function handleQualityCommand(
         const markdownOutput =
             await harness.run(
                 'quality',
-                filePayload
+                filePayload,
+                filePath,
+                globalConfig.outputDir || 'Review'
             );
 
         writeReportFile(

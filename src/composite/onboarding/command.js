@@ -61,7 +61,9 @@ export async function handleOnboardCommand(
         const markdownOutput =
             await harness.run(
                 'onboard',
-                filePayload
+                filePayload,
+                filePath,
+                globalConfig.outputDir || 'Review'
             );
 
         writeReportFile(

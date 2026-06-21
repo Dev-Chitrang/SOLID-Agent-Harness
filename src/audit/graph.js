@@ -9,7 +9,7 @@ Evaluate the SOLID audit output and return JSON only: { "score": <1-10>, "feedba
 Score >= 8 means the audit is thorough, well-structured, and covers all SOLID violations. Score < 8 means it needs more coverage.`;
 
 const auditCriticNode = createCriticNode(auditCriticPrompt, 'auditScore');
-const documentStateNode = createDocumentStateNode('Review', 'SOLID_AUDIT.md');
+const documentStateNode = createDocumentStateNode('SOLID_AUDIT.md');
 
 const AuditState = Annotation.Root({
     ...DocumentState,

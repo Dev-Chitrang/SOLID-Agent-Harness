@@ -19,7 +19,7 @@ export async function handleReadmeCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const markdownOutput = await harness.run('readme', filePayload, filePath);
+        const markdownOutput = await harness.run('readme', filePayload, filePath, globalConfig.outputDir || 'Review');
 
         writeReportFile(filePath, globalConfig.outputDir || 'Review', 'README.md', markdownOutput);
         spinner.succeed(chalk.green(`README.md generation complete inside ${globalConfig.outputDir || 'Review'}/README.md`));

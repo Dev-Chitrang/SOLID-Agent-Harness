@@ -9,7 +9,7 @@ Evaluate the README output and return JSON only: { "score": <1-10>, "feedback": 
 Score >= 8 means the README is polished, well-structured, covers setup, features, and architecture. Score < 8 means it needs improvement.`;
 
 const readmeCriticNode = createCriticNode(readmeCriticPrompt, 'readmeScore');
-const documentStateNode = createDocumentStateNode('Review', 'README.md');
+const documentStateNode = createDocumentStateNode('README.md');
 
 const ReadmeState = Annotation.Root({
     ...DocumentState,
