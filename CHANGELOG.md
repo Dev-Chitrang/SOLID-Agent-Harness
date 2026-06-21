@@ -7,6 +7,45 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [3.0.0] — 2026-06-21
+
+### Added
+
+- **Critic loop architecture** — every individual graph (`audit`, `bugs`, `docs`, `readme`, `review`, `explain`) now follows an `Agent → Critic → conditional edge` cycle. The critic evaluates `analysisResult`, returns `{ score, feedback }` as JSON, and routes back to the agent if score < 8 and iteration < 3. `createCriticNode(systemPrompt, scoreKey)` in `src/common/nodes/criticNodeFactory.js` is shared across all six graphs.
+- **Document awareness** — `audit`, `bugs`, `docs`, and `readme` graphs prepend a `loadDocument` node that reads `config.configurable.targetPath` and `outputDir` to detect whether a report file already exists. Sets `existingDocument` and `documentMode` (`generate` | `update`) into state before the agent runs.
+- **Update prompts** — `audit`, `bugs`, `docs`, and `readme` each define a second system prompt (`updatePrompt`) used in `update` mode. Update prompts instruct the agent to preserve valid content, remove stale sections, and incorporate critic feedback rather than regenerating from scratch.
+- **`writeReportFileDiffAware(projectRoot, outputDir, fileName, content)`** — new `fileSystem.js` export. Reads existing file content, skips the write if content is identical (verified by string equality), writes and returns `true` otherwise. Used by the `quality` command.
+- **`readReportFile(projectRoot, outputDir, fileName)`** — returns file content or `null` if the file does not exist.
+- **`fileExists()` and `readExistingFile()`** — internal helpers used by `documentStateNode`.
+- **Shared state hierarchy** (`src/common/state/States.js`) — `BaseState`, `DocumentState` (extends `BaseState`), and `CompositeState` (independent, no `BaseState` inheritance) defined once and spread into each graph's `Annotation.Root`. Eliminates all duplicated state field declarations that existed in V2.
+- **`src/common/nodes/documentStateNode.js`** — `createDocumentStateNode(fileName)` factory. Reads `outputDir` from `config.configurable` at runtime, eliminating hardcoded path references.
+- **`src/common/nodes/summaryNode.js`** — LLM-based synthesis node shared across all composite graphs. Merges parallel branch outputs into a single executive summary.
+- **Composite graph pipelines** — five composite commands (`ci-fast`, `quality`, `docs-suite`, `onboarding`, `full`) implemented as LangGraph `StateGraph` instances with parallel fan-out (`START → N wrapper nodes → summary → END`). Each wrapper node invokes a compiled individual graph pipeline as a subgraph.
+- **`src/registry/graphRegistry.js`** — maps command names to compiled LangGraph pipelines. `AgentHarness` performs a registry lookup instead of a switch statement.
+- **`src/registry/commandRegistry.js`** — maps command names to handler functions. The TUI derives its command list from `Object.keys(commandRegistry)`.
+- **`AgentHarness.run(commandType, filePayload, targetPath, outputDir)`** — `targetPath` and `outputDir` are now explicit parameters, both forwarded into `config.configurable` for use by `documentStateNode` and other nodes. `recursionLimit` raised from 4 to 25.
+- **Composite command terminal output** — `ci-fast`, `docs-suite`, `onboarding`, and `full` print `finalSummary` to a `cli-table3` table instead of writing a redundant report file. Underlying graphs manage their own artifacts.
+- **`quality` command** — uses `writeReportFileDiffAware` to write `QUALITY_REPORT.md` only when content has changed. Does not write or overwrite `SOLID_AUDIT.md` or `BUG_REPORT.md`.
+- **Vitest test coverage expanded** — added tests for `writeReportFileDiffAware` (skip on identical content via `mtime` check, write on change, create on first run), `readReportFile`, `AgentHarness.run()` with `targetPath` and `outputDir` in `configurable`, and `finalSummary` fallback for composite graphs. Total: 64 tests across 5 test files.
+
+### Changed
+
+- **All six `graph.js` files** — replaced inline `Annotation.Root` field definitions with spread from `States.js`. Removed all duplicated state declarations. Each graph's state now only declares its score key on top of the shared base.
+- **All six `agent.js` files** — payload now includes `existingDocument`, `documentMode`, and `previousCriticFeedback` for document-aware commands; `previousCriticFeedback` for `review` and `explain`.
+- **All command handlers** — `harness.run()` calls updated to pass `filePath` and `outputDir` consistently. `review` and `explain` were previously missing the `filePath` argument.
+- **`src/ui/interactive.js`** — replaced hardcoded `COMMANDS` array and `HANDLERS` object with `commandRegistry`. `COMMANDS = Object.keys(commandRegistry)`. Adding a new command populates the TUI automatically.
+- **`CompositeState`** — removed `...BaseState` inheritance. `CompositeState` is now a flat, independent state object containing only the fields composite graphs actually use: `repositoryFiles`, the six report fields, and `finalSummary`. `analysisResult`, `criticFeedback`, and `iteration` are no longer present in composite state.
+- **`documentStateNode` signature** — `createDocumentStateNode(outputDir, fileName)` changed to `createDocumentStateNode(fileName)`. `outputDir` is now read from `config.configurable.outputDir` at runtime.
+- **`package.json` version** — bumped from `2.1.0` to `3.0.0`.
+
+### Fixed
+
+- **`recursionLimit = 4` correctness bug** — individual graphs in `update` mode can execute up to 7 nodes in a single run (`loadDocument → agent → critic → agent → critic → agent → critic`). The previous limit of 4 caused LangGraph to throw a recursion error before the third critic iteration could complete. Raised to 25.
+- **`outputDir` hardcoded to `'Review'` in `documentStateNode`** — the node now reads `outputDir` from `config.configurable` at runtime, matching the user's configured output directory rather than always defaulting to `'Review'` regardless of configuration.
+- **Missing `filePath` in `review` and `explain` `harness.run()` calls** — both commands now pass `filePath` as `targetPath`, consistent with all other commands.
+
+---
+
 ## [2.1.0] — 2025-06-20
 
 ### Added

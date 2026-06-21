@@ -52,7 +52,21 @@ export function readRepositoryFiles(targetPath) {
 export function writeReportFile(projectRoot, outputDir, fileName, markdownContent) {
     const targetDir = path.resolve(projectRoot, outputDir);
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(path.join(targetDir, fileName), markdownContent, 'utf8')
+    fs.writeFileSync(path.join(targetDir, fileName), markdownContent, 'utf8');
+}
+
+export function writeReportFileDiffAware(projectRoot, outputDir, fileName, markdownContent) {
+    const targetDir = path.resolve(projectRoot, outputDir);
+    const filePath = path.join(targetDir, fileName);
+
+    if (fs.existsSync(filePath)) {
+        const existing = fs.readFileSync(filePath, 'utf8');
+        if (existing === markdownContent) return false;
+    }
+
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+    fs.writeFileSync(filePath, markdownContent, 'utf8');
+    return true;
 }
 
 export function readReportFile(projectRoot, outputDir, fileName) {
