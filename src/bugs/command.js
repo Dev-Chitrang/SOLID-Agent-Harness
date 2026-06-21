@@ -25,7 +25,7 @@ export async function handleBugsCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const markdownOutput = await harness.run('bugs', filePayload);
+        const markdownOutput = await harness.run('bugs', filePayload, filePath, globalConfig.outputDir || 'Review');
 
         writeReportFile(filePath, globalConfig.outputDir || 'Review', 'BUG_REPORT.md', markdownOutput);
         spinner.succeed(chalk.green(`Bug scan complete. File written to ${globalConfig.outputDir || 'Review'}/BUG_REPORT.md`));

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
-import { readRepositoryFiles, writeReportFile } from '../../src/core/fileSystem.js';
+import { readRepositoryFiles, writeReportFile, writeReportFileDiffAware, readReportFile } from '../../src/core/fileSystem.js';
 
 // Uses real fs against a temp directory — no mocking needed for integration-style tests
 let tmpDir;
@@ -116,5 +116,68 @@ describe('writeReportFile()', () => {
 
         const filePath = path.join(tmpDir, 'Reports', 'Sub', 'BUGS.md');
         expect(fs.existsSync(filePath)).toBe(true);
+    });
+});
+
+describe('readReportFile()', () => {
+    it('returns null when the file does not exist', () => {
+        const result = readReportFile(tmpDir, 'Review', 'NONEXISTENT.md');
+        expect(result).toBeNull();
+    });
+
+    it('returns file contents when the file exists', () => {
+        writeReportFile(tmpDir, 'Review', 'SOLID_AUDIT.md', '# Audit Report');
+        const result = readReportFile(tmpDir, 'Review', 'SOLID_AUDIT.md');
+        expect(result).toBe('# Audit Report');
+    });
+
+    it('returns correct content for nested output dirs', () => {
+        writeReportFile(tmpDir, 'Reports/Sub', 'BUG_REPORT.md', '# Bugs Here');
+        const result = readReportFile(tmpDir, 'Reports/Sub', 'BUG_REPORT.md');
+        expect(result).toBe('# Bugs Here');
+    });
+});
+
+describe('writeReportFileDiffAware()', () => {
+    it('creates the file and returns true when file does not exist', () => {
+        const written = writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# Quality');
+
+        expect(written).toBe(true);
+        const content = fs.readFileSync(path.join(tmpDir, 'Review', 'QUALITY_REPORT.md'), 'utf8');
+        expect(content).toBe('# Quality');
+    });
+
+    it('returns false and does not rewrite when content is identical', () => {
+        writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# Quality');
+        const mtime1 = fs.statSync(path.join(tmpDir, 'Review', 'QUALITY_REPORT.md')).mtimeMs;
+
+        // Small delay to ensure mtime would differ if a write occurred
+        const written = writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# Quality');
+
+        const mtime2 = fs.statSync(path.join(tmpDir, 'Review', 'QUALITY_REPORT.md')).mtimeMs;
+        expect(written).toBe(false);
+        expect(mtime2).toBe(mtime1);
+    });
+
+    it('overwrites and returns true when content has changed', () => {
+        writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# Old');
+        const written = writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# New');
+
+        expect(written).toBe(true);
+        const content = fs.readFileSync(path.join(tmpDir, 'Review', 'QUALITY_REPORT.md'), 'utf8');
+        expect(content).toBe('# New');
+    });
+
+    it('creates output directory if it does not exist', () => {
+        writeReportFileDiffAware(tmpDir, 'NewDir', 'QUALITY_REPORT.md', '# Q');
+
+        expect(fs.existsSync(path.join(tmpDir, 'NewDir'))).toBe(true);
+    });
+
+    it('resolves path relative to projectRoot, not cwd', () => {
+        writeReportFileDiffAware(tmpDir, 'Review', 'QUALITY_REPORT.md', '# Q');
+
+        const expectedPath = path.join(tmpDir, 'Review', 'QUALITY_REPORT.md');
+        expect(fs.existsSync(expectedPath)).toBe(true);
     });
 });

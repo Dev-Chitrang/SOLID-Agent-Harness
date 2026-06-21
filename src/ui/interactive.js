@@ -1,23 +1,10 @@
 import blessed from 'blessed';
 import { ConfigManager } from '../core/config.js';
 import { ProviderFactory } from '../providers/providerFactory.js';
-import { handleAuditCommand } from '../audit/command.js';
-import { handleBugsCommand } from '../bugs/command.js';
-import { handleDocsCommand } from '../docs/command.js';
-import { handleReadmeCommand } from '../readme/command.js';
-import { handleReviewCommand } from '../review/command.js';
-import { handleExplainCommand } from '../explain/command.js';
+import { commandRegistry } from '../registry/commandRegistry.js';
 import chalk from 'chalk';
 
-const COMMANDS = ['audit', 'bugs', 'docs', 'readme', 'review', 'explain'];
-const HANDLERS = {
-    audit: handleAuditCommand,
-    bugs: handleBugsCommand,
-    docs: handleDocsCommand,
-    readme: handleReadmeCommand,
-    review: handleReviewCommand,
-    explain: handleExplainCommand
-};
+const COMMANDS = Object.keys(commandRegistry);
 
 const ACTIVE_COLOR = 'cyan';
 const INACTIVE_COLOR = 'gray';
@@ -87,7 +74,6 @@ export async function launchInteractiveTUI() {
 
     const focusOrder = [pathInput, providerBox, commandBox, modelBox];
 
-    // Auto highlight on focus/blur — fires for every widget automatically
     focusOrder.forEach((widget) => {
         widget.on('focus', () => {
             widget.style.border.fg = ACTIVE_COLOR;
@@ -164,7 +150,7 @@ export async function launchInteractiveTUI() {
         screen.leave();
         console.log(`\nRunning ${command} on ${targetPath} [${provider}/${model}]...\n`);
         try {
-            await HANDLERS[command](targetPath, provider, model);
+            await commandRegistry[command](targetPath, provider, model);
         } catch (err) {
             console.error(`Error: ${err.message}`);
         }

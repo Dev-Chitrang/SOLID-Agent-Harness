@@ -20,7 +20,7 @@ export async function handleExplainCommand(filePath, providerName, modelName) {
         const providerInstance = ProviderFactory.create(activeProviderName, providerCreds);
         const harness = new AgentHarness(providerInstance, modelName || providerCreds.defaultModel);
 
-        const responseText = await harness.run('explain', filePayload);
+        const responseText = await harness.run('explain', filePayload, filePath);
         spinner.succeed(chalk.green(`Explanation mapping execution complete.\n`));
 
         const table = new Table({

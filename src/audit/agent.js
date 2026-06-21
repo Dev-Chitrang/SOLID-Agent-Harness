@@ -1,14 +1,22 @@
-import { auditPrompt } from './prompt.js'
+import { auditPrompt, auditUpdatePrompt } from './prompt.js';
 
 export async function solidAgentNode(state, config) {
     const providerInstance = config.configurable.providerInstance;
     const activeModel = config.configurable.model;
 
-    const payload = JSON.stringify(state.repositoryFiles, null, 2)
-    const response = await providerInstance.invoke([
-        { role: 'system', content: auditPrompt },
-        { role: 'user', content: `Codebase Payload: \n${payload}` }
-    ], activeModel)
+    const systemPrompt = state.documentMode === 'update' ? auditUpdatePrompt : auditPrompt;
 
-    return { analysisResult: response }
+    const userContent = JSON.stringify({
+        repositoryFiles: state.repositoryFiles,
+        existingDocument: state.existingDocument ?? null,
+        documentMode: state.documentMode ?? 'generate',
+        previousCriticFeedback: state.criticFeedback ?? ''
+    }, null, 2);
+
+    const response = await providerInstance.invoke([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+    ], activeModel);
+
+    return { analysisResult: response };
 }
